@@ -100,6 +100,31 @@ describe('custom grid preset calculations', () => {
   });
 });
 
+// Variable-grid device (Stream Deck Mobile): user-defined grid, 144px tiles, gap 0
+const mobile = PRESETS.find((p) => p.label === 'Stream Deck Mobile')!;
+
+describe('variable-grid (Mobile) preset calculations', () => {
+  it('computes the canvas without any gap term', () => {
+    const grid8x8 = { ...mobile, cols: 8, rows: 8 };
+    // 8 * 144 = 1152 regardless of cutoff (gap is 0)
+    expect(calculateTargetWidth(grid8x8, true)).toBe(1152);
+    expect(calculateTargetWidth(grid8x8, false)).toBe(1152);
+    expect(calculateTargetHeight(grid8x8, true)).toBe(1152);
+    expect(calculateTargetHeight(grid8x8, false)).toBe(1152);
+  });
+
+  it('works for non-square user grids', () => {
+    const grid6x4 = { ...mobile, cols: 6, rows: 4 };
+    expect(calculateTargetWidth(grid6x4, false)).toBe(864);
+    expect(calculateTargetHeight(grid6x4, false)).toBe(576);
+  });
+
+  it('always yields gap 0', () => {
+    expect(calculateGap(mobile, true)).toBe(0);
+    expect(calculateGap(mobile, false)).toBe(0);
+  });
+});
+
 describe('calculateScaledGap', () => {
   it('scales gap proportionally when cutoff is on', () => {
     // MK.2: 72px tile, gap 16, preview 72 → 16 * (72/72) = 16

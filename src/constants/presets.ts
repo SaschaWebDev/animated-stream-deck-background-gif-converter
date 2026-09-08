@@ -6,6 +6,8 @@ export interface Preset {
   tileWidth: number;
   tileHeight: number;
   gap: number;
+  /** Virtual device whose grid the user defines (e.g. Stream Deck Mobile, 1-8 x 1-8). */
+  variableGrid?: boolean;
 }
 
 export const PRESETS: Preset[] = [
@@ -62,5 +64,18 @@ export const PRESETS: Preset[] = [
     tileWidth: 144,
     tileHeight: 144,
     gap: 40,
+  },
+  {
+    // Virtual device rendered on phone/tablet screens — no physical bezel (gap 0),
+    // no documented profile model string. cols/rows are the max-capability fallback;
+    // the user must enter their actual grid (1-8 x 1-8) before processing.
+    label: 'Stream Deck Mobile',
+    model: '',
+    cols: 8,
+    rows: 8,
+    tileWidth: 144,
+    tileHeight: 144,
+    gap: 0,
+    variableGrid: true,
   },
 ];

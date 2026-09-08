@@ -17,10 +17,28 @@ export function useDeviceConfig(appMode: AppMode = 'splitter') {
   const [customRows, setCustomRows] = useState(1);
   const [gridOffsetCol, setGridOffsetCol] = useState(0);
   const [gridOffsetRow, setGridOffsetRow] = useState(0);
+  // Device grid for variable-grid presets (Stream Deck Mobile) — null until the user enters it
+  const [deviceCols, setDeviceCols] = useState<number | null>(null);
+  const [deviceRows, setDeviceRows] = useState<number | null>(null);
 
-  const cutoffMode = appMode === 'screensaver' ? false : rawCutoffMode;
+  const rawPreset = PRESETS[presetIndex];
 
-  const basePreset = PRESETS[presetIndex];
+  // Variable-grid devices have no physical bezel, so cutoff mode never applies
+  const cutoffMode =
+    appMode === 'screensaver' || rawPreset.variableGrid ? false : rawCutoffMode;
+
+  // Processing is blocked for variable-grid presets until the user has entered their grid
+  const gridReady =
+    !rawPreset.variableGrid || (deviceCols != null && deviceRows != null);
+
+  const basePreset = useMemo(() => {
+    if (!rawPreset.variableGrid) return rawPreset;
+    return {
+      ...rawPreset,
+      cols: deviceCols ?? rawPreset.cols,
+      rows: deviceRows ?? rawPreset.rows,
+    };
+  }, [rawPreset, deviceCols, deviceRows]);
 
   const preset = useMemo(() => {
     if (!customGridEnabled) return basePreset;
@@ -56,5 +74,10 @@ export function useDeviceConfig(appMode: AppMode = 'splitter') {
     setGridOffsetCol,
     gridOffsetRow,
     setGridOffsetRow,
+    deviceCols,
+    setDeviceCols,
+    deviceRows,
+    setDeviceRows,
+    gridReady,
   };
 }

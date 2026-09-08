@@ -22,11 +22,17 @@ export function UserManual() {
           <p>
             We currently support the Stream Deck MK.2 (5×3), Stream Deck
             XL (8×4), Stream Deck Mini (3×2), Stream Deck + (4×2),
-            Stream Deck Neo (4×2), and Stream Deck + XL (9×4). Each preset automatically adjusts the
+            Stream Deck Neo (4×2), Stream Deck + XL (9×4), and the
+            Stream Deck Mobile app with a freely configurable grid from
+            1×1 up to 8×8 — enter the columns and rows you use in the
+            mobile app. Each preset automatically adjusts the
             crop dimensions and tile sizes to match the device. You can
             also enable <strong>Custom Grid</strong> to use a smaller
             sub-area of your device (e.g. a 6×3 region on your 8×4 XL)
-            and position it anywhere on the button layout.
+            and position it anywhere on the button layout. Note that the
+            .streamDeckProfile export is not available for Stream Deck
+            Mobile — use the ZIP download and assign the tiles in the
+            mobile app instead.
           </p>
         </details>
         <details className='hw-faq-item'>

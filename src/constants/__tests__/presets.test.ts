@@ -1,24 +1,27 @@
 import { PRESETS } from '../presets';
 
 describe('PRESETS', () => {
-  it('has exactly 6 presets', () => {
-    expect(PRESETS).toHaveLength(6);
+  it('has exactly 7 presets', () => {
+    expect(PRESETS).toHaveLength(7);
   });
 
   it('all presets have required fields with positive values', () => {
     for (const preset of PRESETS) {
       expect(preset.label).toBeTruthy();
-      expect(preset.model).toBeTruthy();
       expect(preset.cols).toBeGreaterThan(0);
       expect(preset.rows).toBeGreaterThan(0);
       expect(preset.tileWidth).toBeGreaterThan(0);
       expect(preset.tileHeight).toBeGreaterThan(0);
-      expect(preset.gap).toBeGreaterThan(0);
+      // Variable-grid devices are virtual: no profile model string, no bezel gap
+      if (!preset.variableGrid) {
+        expect(preset.model).toBeTruthy();
+        expect(preset.gap).toBeGreaterThan(0);
+      }
     }
   });
 
   it('has no duplicate model IDs', () => {
-    const models = PRESETS.map((p) => p.model);
+    const models = PRESETS.map((p) => p.model).filter(Boolean);
     expect(new Set(models).size).toBe(models.length);
   });
 
@@ -41,5 +44,22 @@ describe('PRESETS', () => {
     expect(plusXl).toBeDefined();
     expect(plusXl!.cols).toBe(9);
     expect(plusXl!.rows).toBe(4);
+  });
+
+  it('Mobile is a variable-grid device with 144px tiles and no gap', () => {
+    const mobile = PRESETS.find((p) => p.label === 'Stream Deck Mobile');
+    expect(mobile).toBeDefined();
+    expect(mobile!.variableGrid).toBe(true);
+    expect(mobile!.cols).toBe(8);
+    expect(mobile!.rows).toBe(8);
+    expect(mobile!.tileWidth).toBe(144);
+    expect(mobile!.tileHeight).toBe(144);
+    expect(mobile!.gap).toBe(0);
+  });
+
+  it('only Mobile is variable-grid', () => {
+    const variable = PRESETS.filter((p) => p.variableGrid);
+    expect(variable).toHaveLength(1);
+    expect(variable[0].label).toBe('Stream Deck Mobile');
   });
 });

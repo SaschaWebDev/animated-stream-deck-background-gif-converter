@@ -70,6 +70,11 @@ function App() {
     setGridOffsetCol,
     gridOffsetRow,
     setGridOffsetRow,
+    deviceCols,
+    setDeviceCols,
+    deviceRows,
+    setDeviceRows,
+    gridReady,
   } = useDeviceConfig(appMode);
 
   const {
@@ -128,7 +133,7 @@ function App() {
   }, [resetProcessor, clearUpload, setCustomGridEnabled, setGridOffsetCol, setGridOffsetRow, filmstripFrames, updateFramePreview]);
 
   const getTargetSizeForMode = useCallback((mode: AppMode) => {
-    const includeGaps = mode === 'splitter' && rawCutoffMode;
+    const includeGaps = mode === 'splitter' && rawCutoffMode && !basePreset.variableGrid;
     return {
       width: basePreset.cols * basePreset.tileWidth + (includeGaps ? (basePreset.cols - 1) * basePreset.gap : 0),
       height: basePreset.rows * basePreset.tileHeight + (includeGaps ? (basePreset.rows - 1) * basePreset.gap : 0),
@@ -152,9 +157,11 @@ function App() {
     clearResults();
     await clearCroppedPreview();
 
-    const { width, height } = getTargetSizeForMode(newMode);
-    await performCrop(file, width, height);
-  }, [appMode, file, setCustomGridEnabled, setGridOffsetCol, setGridOffsetRow, updateFramePreview, clearResults, clearCroppedPreview, getTargetSizeForMode, performCrop]);
+    if (gridReady) {
+      const { width, height } = getTargetSizeForMode(newMode);
+      await performCrop(file, width, height);
+    }
+  }, [appMode, file, setCustomGridEnabled, setGridOffsetCol, setGridOffsetRow, updateFramePreview, clearResults, clearCroppedPreview, gridReady, getTargetSizeForMode, performCrop]);
 
   const handleFileUpload = useCallback(async (f: File) => {
     if (!f.type.startsWith('image/')) return;
@@ -173,8 +180,11 @@ function App() {
     const duration = await parseGifDuration(f);
     setGifDuration(duration);
     await setFileWithPreview(f);
-    const { width, height } = getTargetSizeForMode(nextMode);
-    await performCrop(f, width, height);
+    // Variable-grid devices block cropping until the user has entered their grid
+    if (gridReady) {
+      const { width, height } = getTargetSizeForMode(nextMode);
+      await performCrop(f, width, height);
+    }
     // Extract filmstrip frames after crop (non-critical — uses isolated FFmpeg instance)
     if (duration > 0) {
       try {
@@ -184,7 +194,7 @@ function App() {
         // Filmstrip extraction failed, continue without it
       }
     }
-  }, [resetProcessor, setFileWithPreview, performCrop, extractFrames, filmstripFrames, updateFramePreview, getTargetSizeForMode]);
+  }, [resetProcessor, setFileWithPreview, performCrop, extractFrames, filmstripFrames, updateFramePreview, gridReady, getTargetSizeForMode]);
 
   const handlePresetChange = useCallback(async (newIndex: number) => {
     setPresetIndex(newIndex);
@@ -192,18 +202,36 @@ function App() {
     setCustomGridEnabled(false);
     cropOffsetRef.current = null;
     const p = PRESETS[newIndex];
+
+    clearResults();
+
+    if (p.variableGrid) {
+      // Grid not entered yet — stay in the prompt state until the user provides it.
+      // Previously entered values are remembered for the session, so re-crop with those.
+      if (deviceCols == null || deviceRows == null) {
+        if (file) await clearCroppedPreview();
+        return;
+      }
+      const tw = deviceCols * p.tileWidth;
+      const th = deviceRows * p.tileHeight;
+      if (file) {
+        await clearCroppedPreview();
+        const tr = trimRangeRef.current;
+        await performCrop(file, tw, th, undefined, undefined, tr?.start, tr?.end);
+      }
+      return;
+    }
+
     const gap = appMode === 'splitter' ? p.gap : 0;
     const tw = p.cols * p.tileWidth + (p.cols - 1) * gap;
     const th = p.rows * p.tileHeight + (p.rows - 1) * gap;
-
-    clearResults();
 
     if (file) {
       await clearCroppedPreview();
       const tr = trimRangeRef.current;
       await performCrop(file, tw, th, undefined, undefined, tr?.start, tr?.end);
     }
-  }, [file, appMode, setPresetIndex, setCutoffMode, setCustomGridEnabled, clearResults, clearCroppedPreview, performCrop]);
+  }, [file, appMode, deviceCols, deviceRows, setPresetIndex, setCutoffMode, setCustomGridEnabled, clearResults, clearCroppedPreview, performCrop]);
 
   const handleCutoffToggle = useCallback(async (checked: boolean) => {
     setCutoffMode(checked);
@@ -330,6 +358,44 @@ function App() {
     setGridOffsetCol(col);
     setGridOffsetRow(row);
   }, [setGridOffsetCol, setGridOffsetRow]);
+
+  // Custom grid is never available for variable-grid devices (the user already
+  // defines the exact grid), so no subset clamping is needed here.
+  const handleDeviceColsChange = useCallback(async (cols: number) => {
+    setDeviceCols(cols);
+    // Grid still incomplete — stay in the prompt state until rows are entered too
+    if (deviceRows == null) return;
+    // Canvas size changed, reset crop offset
+    cropOffsetRef.current = null;
+    const p = PRESETS[presetIndex];
+    // No gap term — variable-grid devices have gap 0 and cutoff is forced off
+    const tw = cols * p.tileWidth;
+    const th = deviceRows * p.tileHeight;
+    clearResults();
+    if (file) {
+      await clearCroppedPreview();
+      const tr = trimRangeRef.current;
+      await performCrop(file, tw, th, undefined, undefined, tr?.start, tr?.end);
+    }
+  }, [file, presetIndex, deviceRows, setDeviceCols, clearResults, clearCroppedPreview, performCrop]);
+
+  const handleDeviceRowsChange = useCallback(async (rows: number) => {
+    setDeviceRows(rows);
+    // Grid still incomplete — stay in the prompt state until cols are entered too
+    if (deviceCols == null) return;
+    // Canvas size changed, reset crop offset
+    cropOffsetRef.current = null;
+    const p = PRESETS[presetIndex];
+    // No gap term — variable-grid devices have gap 0 and cutoff is forced off
+    const tw = deviceCols * p.tileWidth;
+    const th = rows * p.tileHeight;
+    clearResults();
+    if (file) {
+      await clearCroppedPreview();
+      const tr = trimRangeRef.current;
+      await performCrop(file, tw, th, undefined, undefined, tr?.start, tr?.end);
+    }
+  }, [file, presetIndex, deviceCols, setDeviceRows, clearResults, clearCroppedPreview, performCrop]);
 
   const handleScreensaverFrameChange = useCallback((time: number) => {
     const max = gifDuration ?? 0;
@@ -460,6 +526,9 @@ function App() {
                 customRows={customRows}
                 gridOffsetCol={gridOffsetCol}
                 gridOffsetRow={gridOffsetRow}
+                deviceCols={deviceCols}
+                deviceRows={deviceRows}
+                gridReady={gridReady}
                 targetWidth={targetWidth}
                 targetHeight={targetHeight}
                 preset={preset}
@@ -474,8 +543,11 @@ function App() {
                 onCustomColsChange={handleCustomColsChange}
                 onCustomRowsChange={handleCustomRowsChange}
                 onGridOffsetChange={handleGridOffsetChange}
+                onDeviceColsChange={handleDeviceColsChange}
+                onDeviceRowsChange={handleDeviceRowsChange}
               />
 
+              {gridReady ? (
               <CropPreview
                 appMode={appMode}
                 preset={preset}
@@ -504,6 +576,12 @@ function App() {
                 onTrimChange={handleTrimChange}
                 onScreensaverFrameChange={handleScreensaverFrameChange}
               />
+              ) : (
+                <div className='hw-grid-prompt'>
+                  Enter your Stream Deck Mobile grid size (1&ndash;8 columns
+                  &times; 1&ndash;8 rows) above to continue.
+                </div>
+              )}
             </section>
           )}
 

@@ -714,6 +714,45 @@
   padding-bottom: 10px;
 }
 
+/* ---- Device grid inputs (variable-grid devices, e.g. Stream Deck Mobile) ---- */
+.hw-device-grid-inputs {
+  margin-top: 10px;
+}
+
+.hw-grid-required input {
+  border-color: #f59e0b;
+  animation: hw-grid-required-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes hw-grid-required-pulse {
+  0%,
+  100% {
+    box-shadow:
+      inset 0 2px 4px rgba(0, 0, 0, 0.4),
+      0 0 0 0 rgba(245, 158, 11, 0);
+  }
+  50% {
+    box-shadow:
+      inset 0 2px 4px rgba(0, 0, 0, 0.4),
+      0 0 0 3px rgba(245, 158, 11, 0.25);
+  }
+}
+
+.hw-spec-attention {
+  color: #f59e0b;
+}
+
+.hw-grid-prompt {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.8rem;
+  color: #f59e0b;
+  text-align: center;
+  padding: 28px 20px;
+  margin-top: 16px;
+  border: 1px dashed #3f3f46;
+  border-radius: 12px;
+}
+
 /* ---- Grid position controls ---- */
 .hw-grid-position {
   display: flex;

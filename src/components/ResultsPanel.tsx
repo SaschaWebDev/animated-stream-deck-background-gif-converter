@@ -48,15 +48,18 @@ export function ResultsPanel({
                     ? 'Creating zip...'
                     : `Download .zip (${results.length} tiles)`}
                 </button>
-                <button
-                  className='hw-download-button hw-download-profile'
-                  onClick={onDownloadProfile}
-                  disabled={zippingProfile}
-                >
-                  {zippingProfile
-                    ? 'Creating profile...'
-                    : 'Download .streamDeckProfile'}
-                </button>
+                {/* Mobile's profile device-model string is undocumented — no profile export */}
+                {!basePreset.variableGrid && (
+                  <button
+                    className='hw-download-button hw-download-profile'
+                    onClick={onDownloadProfile}
+                    disabled={zippingProfile}
+                  >
+                    {zippingProfile
+                      ? 'Creating profile...'
+                      : 'Download .streamDeckProfile'}
+                  </button>
+                )}
               </div>
             </div>
           )}

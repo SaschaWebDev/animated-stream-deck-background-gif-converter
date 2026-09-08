@@ -13,6 +13,9 @@ export function DeviceConfig({
   customRows,
   gridOffsetCol,
   gridOffsetRow,
+  deviceCols,
+  deviceRows,
+  gridReady,
   targetWidth,
   targetHeight,
   preset,
@@ -27,6 +30,8 @@ export function DeviceConfig({
   onCustomColsChange,
   onCustomRowsChange,
   onGridOffsetChange,
+  onDeviceColsChange,
+  onDeviceRowsChange,
 }: DeviceConfigProps) {
   const isCustomSmaller = customGridEnabled && (customCols < basePreset.cols || customRows < basePreset.rows);
   const maxOffsetCol = basePreset.cols - customCols;
@@ -50,6 +55,36 @@ export function DeviceConfig({
     const v = Math.max(1, Math.min(basePreset.rows, parseInt(raw) || 1));
     setRowsInput(String(v));
     if (v !== customRows) onCustomRowsChange(v);
+  };
+
+  // Device grid inputs for variable-grid presets (Stream Deck Mobile) — start empty,
+  // the user must enter their own grid. An empty/invalid commit keeps the value unset.
+  const [deviceColsInput, setDeviceColsInput] = useState(deviceCols != null ? String(deviceCols) : '');
+  const [deviceRowsInput, setDeviceRowsInput] = useState(deviceRows != null ? String(deviceRows) : '');
+
+  useEffect(() => setDeviceColsInput(deviceCols != null ? String(deviceCols) : ''), [deviceCols]);
+  useEffect(() => setDeviceRowsInput(deviceRows != null ? String(deviceRows) : ''), [deviceRows]);
+
+  const commitDeviceCols = (raw: string) => {
+    const parsed = parseInt(raw);
+    if (isNaN(parsed)) {
+      setDeviceColsInput(deviceCols != null ? String(deviceCols) : '');
+      return;
+    }
+    const v = Math.max(1, Math.min(8, parsed));
+    setDeviceColsInput(String(v));
+    if (v !== deviceCols) onDeviceColsChange(v);
+  };
+
+  const commitDeviceRows = (raw: string) => {
+    const parsed = parseInt(raw);
+    if (isNaN(parsed)) {
+      setDeviceRowsInput(deviceRows != null ? String(deviceRows) : '');
+      return;
+    }
+    const v = Math.max(1, Math.min(8, parsed));
+    setDeviceRowsInput(String(v));
+    if (v !== deviceRows) onDeviceRowsChange(v);
   };
 
   return (
@@ -76,25 +111,68 @@ export function DeviceConfig({
               </option>
             ))}
           </select>
+          {basePreset.variableGrid && (
+            <div className='hw-grid-inputs hw-device-grid-inputs'>
+              <label className={`hw-grid-input${deviceCols == null ? ' hw-grid-required' : ''}`}>
+                <span className='hw-label'>Cols</span>
+                <input
+                  type='number'
+                  inputMode='numeric'
+                  min={1}
+                  max={8}
+                  placeholder='1-8'
+                  value={deviceColsInput}
+                  onChange={(e) => setDeviceColsInput(e.target.value)}
+                  onBlur={(e) => commitDeviceCols(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter') commitDeviceCols(deviceColsInput); }}
+                  disabled={isCropping || isSplitting}
+                />
+              </label>
+              <span className='hw-grid-x'>&times;</span>
+              <label className={`hw-grid-input${deviceRows == null ? ' hw-grid-required' : ''}`}>
+                <span className='hw-label'>Rows</span>
+                <input
+                  type='number'
+                  inputMode='numeric'
+                  min={1}
+                  max={8}
+                  placeholder='1-8'
+                  value={deviceRowsInput}
+                  onChange={(e) => setDeviceRowsInput(e.target.value)}
+                  onBlur={(e) => commitDeviceRows(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter') commitDeviceRows(deviceRowsInput); }}
+                  disabled={isCropping || isSplitting}
+                />
+              </label>
+            </div>
+          )}
         </div>
 
         <div className='hw-config-specs'>
-          <span className='hw-spec'>
-            {targetWidth}px &times; {targetHeight}px canvas
-            {cutoffMode && ` (${preset.gap}px gap)`}
-          </span>
-          <span className='hw-spec'>
-            {preset.cols} &times; {preset.rows} grid &mdash;{' '}
-            {preset.cols * preset.rows} tiles at {preset.tileWidth}px
-            &times; {preset.tileHeight}px
-            {customGridEnabled && (
-              <span className='hw-crop-label-tag'>(custom)</span>
-            )}
-          </span>
+          {gridReady ? (
+            <>
+              <span className='hw-spec'>
+                {targetWidth}px &times; {targetHeight}px canvas
+                {cutoffMode && ` (${preset.gap}px gap)`}
+              </span>
+              <span className='hw-spec'>
+                {preset.cols} &times; {preset.rows} grid &mdash;{' '}
+                {preset.cols * preset.rows} tiles at {preset.tileWidth}px
+                &times; {preset.tileHeight}px
+                {customGridEnabled && (
+                  <span className='hw-crop-label-tag'>(custom)</span>
+                )}
+              </span>
+            </>
+          ) : (
+            <span className='hw-spec hw-spec-attention'>
+              Set your grid size (1&ndash;8 &times; 1&ndash;8) to continue
+            </span>
+          )}
         </div>
 
         <div className='hw-toggles-grid'>
-        {appMode === 'splitter' && (
+        {appMode === 'splitter' && !basePreset.variableGrid && (
           <div className='hw-cutoff-toggle'>
             <label className='hw-toggle-wrapper'>
               <input
@@ -115,7 +193,7 @@ export function DeviceConfig({
           </div>
         )}
 
-        {appMode === 'splitter' && (
+        {appMode === 'splitter' && !basePreset.variableGrid && (
           <div className='hw-cutoff-toggle'>
             <label className='hw-toggle-wrapper'>
               <input

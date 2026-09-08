@@ -44,6 +44,9 @@ export interface DeviceConfigProps {
   customRows: number;
   gridOffsetCol: number;
   gridOffsetRow: number;
+  deviceCols: number | null;
+  deviceRows: number | null;
+  gridReady: boolean;
   targetWidth: number;
   targetHeight: number;
   preset: import('../constants/presets').Preset;
@@ -58,6 +61,8 @@ export interface DeviceConfigProps {
   onCustomColsChange: (cols: number) => void;
   onCustomRowsChange: (rows: number) => void;
   onGridOffsetChange: (col: number, row: number) => void;
+  onDeviceColsChange: (cols: number) => void;
+  onDeviceRowsChange: (rows: number) => void;
 }
 
 export interface CropPreviewProps {
