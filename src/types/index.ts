@@ -20,7 +20,6 @@ export interface SyncedSrcs {
 }
 
 export interface FileDropZoneProps {
-  appMode: AppMode;
   file: File | null;
   preview: string | null;
   cropSyncKey: number;

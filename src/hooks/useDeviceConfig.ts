@@ -36,6 +36,7 @@ export function useDeviceConfig(appMode: AppMode = 'splitter') {
   return {
     presetIndex,
     setPresetIndex,
+    rawCutoffMode,
     cutoffMode,
     setCutoffMode,
     preset,

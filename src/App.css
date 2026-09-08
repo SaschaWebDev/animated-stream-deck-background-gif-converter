@@ -1884,12 +1884,28 @@
   opacity: 1;
 }
 
-/* ---- App Mode Toggle (Splitter / Screensaver) ---- */
+/* ---- Contextual GIF output selector ---- */
+.hw-output-mode {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: -8px 4px 0;
+}
+
+.hw-output-mode-title {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: #71717a;
+}
+
 .hw-mode-toggle-track {
   position: relative;
   display: grid;
   grid-template-columns: 1fr 1fr;
-  margin: 0 4px 20px;
+  margin: 0;
   padding: 4px;
   border-radius: 14px;
   background: linear-gradient(180deg, #141418 0%, #111114 100%);
@@ -1948,6 +1964,11 @@
 
 .hw-mode-toggle-label:hover:not(.active) {
   color: #71717a;
+}
+
+.hw-mode-toggle-label:disabled {
+  cursor: wait;
+  opacity: 0.65;
 }
 
 .hw-mode-toggle-label.active {

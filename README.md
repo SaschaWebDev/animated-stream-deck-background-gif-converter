@@ -95,7 +95,7 @@ npm run preview   # preview the production build locally
 
 ## ⚙️ How It Works
 
-1. 📤 **Upload** — Toggle between "GIF Splitter" or "Image Wallpaper" mode, then drop an image/GIF, click to browse, or search GIPHY
+1. 📤 **Choose a source** — Upload an image/GIF or search GIPHY. Static images automatically use wallpaper mode; GIFs default to tile splitting and can be switched to wallpaper output after selection.
 2. ⚙️ **Configure** — Select your device model. In Splitter mode, optionally enable **Custom Grid** to target a smaller sub-area (e.g. 6×3 on an XL)
 3. ✂️ **Crop** — The file is automatically cropped and scaled to match the target grid area (including optional gap compensation in Splitter mode). Enable **Custom Crop** to drag the crop region and choose which area to keep
 4. 🔁 **Trim** — Enable **Custom Loop** to shorten the animation loop. A filmstrip timeline shows snapshot frames at evenly-spaced intervals; drag the left/right handles to select the portion you want. Trimmed-out regions are shown with a striped overlay

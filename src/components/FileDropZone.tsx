@@ -1,7 +1,6 @@
 import type { FileDropZoneProps } from '../types';
 
 export function FileDropZone({
-  appMode,
   file,
   preview,
   cropSyncKey,
@@ -26,7 +25,7 @@ export function FileDropZone({
         <input
           ref={fileInputRef}
           type='file'
-          accept={appMode === 'screensaver' ? 'image/*' : 'image/gif'}
+          accept='image/*'
           className='hw-file-input'
           onChange={onInputChange}
         />
@@ -73,14 +72,10 @@ export function FileDropZone({
               </svg>
             </div>
             <p className='hw-drop-label'>
-              Drag & drop your {appMode === 'screensaver' ? 'image' : 'GIF'}{' '}
-              here, or <span className='hw-drop-browse'>browse</span>
+              Drag &amp; drop your GIF or image here, or{' '}
+              <span className='hw-drop-browse'>browse</span>
             </p>
-            <span className='hw-drop-hint'>
-              {appMode === 'screensaver'
-                ? 'Image files are accepted'
-                : 'Only .gif files are accepted'}
-            </span>
+            <span className='hw-drop-hint'>GIF and static image files are accepted</span>
           </div>
         )}
       </div>

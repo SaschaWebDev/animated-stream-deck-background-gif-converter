@@ -50,6 +50,7 @@ function App() {
   const {
     presetIndex,
     setPresetIndex,
+    rawCutoffMode,
     cutoffMode,
     setCutoffMode,
     preset,
@@ -126,15 +127,39 @@ function App() {
     setFilmstripFrames([]);
   }, [resetProcessor, clearUpload, setCustomGridEnabled, setGridOffsetCol, setGridOffsetRow, filmstripFrames, updateFramePreview]);
 
-  const handleAppModeChange = useCallback(async (newMode: AppMode) => {
-    if (newMode === appMode) return;
+  const getTargetSizeForMode = useCallback((mode: AppMode) => {
+    const includeGaps = mode === 'splitter' && rawCutoffMode;
+    return {
+      width: basePreset.cols * basePreset.tileWidth + (includeGaps ? (basePreset.cols - 1) * basePreset.gap : 0),
+      height: basePreset.rows * basePreset.tileHeight + (includeGaps ? (basePreset.rows - 1) * basePreset.gap : 0),
+    };
+  }, [basePreset, rawCutoffMode]);
+
+  const handleOutputModeChange = useCallback(async (newMode: AppMode) => {
+    if (newMode === appMode || !file || file.type !== 'image/gif') return;
+
     setAppMode(newMode);
-    await handleClearFile();
-  }, [appMode, handleClearFile]);
+    setCustomGridEnabled(false);
+    setGridOffsetCol(0);
+    setGridOffsetRow(0);
+    setCustomLoopEnabled(false);
+    setTrimRange(null);
+    trimRangeRef.current = null;
+    cropOffsetRef.current = null;
+    setScreensaverFrameTime(0);
+    screensaverFrameTimeRef.current = 0;
+    updateFramePreview(null);
+    clearResults();
+    await clearCroppedPreview();
+
+    const { width, height } = getTargetSizeForMode(newMode);
+    await performCrop(file, width, height);
+  }, [appMode, file, setCustomGridEnabled, setGridOffsetCol, setGridOffsetRow, updateFramePreview, clearResults, clearCroppedPreview, getTargetSizeForMode, performCrop]);
 
   const handleFileUpload = useCallback(async (f: File) => {
     if (!f.type.startsWith('image/')) return;
-    if (appMode === 'splitter' && f.type !== 'image/gif') return;
+    const nextMode: AppMode = f.type === 'image/gif' ? 'splitter' : 'screensaver';
+    setAppMode(nextMode);
     await resetProcessor();
     setTrimRange(null);
     trimRangeRef.current = null;
@@ -148,7 +173,8 @@ function App() {
     const duration = await parseGifDuration(f);
     setGifDuration(duration);
     await setFileWithPreview(f);
-    await performCrop(f, targetWidth, targetHeight);
+    const { width, height } = getTargetSizeForMode(nextMode);
+    await performCrop(f, width, height);
     // Extract filmstrip frames after crop (non-critical — uses isolated FFmpeg instance)
     if (duration > 0) {
       try {
@@ -158,7 +184,7 @@ function App() {
         // Filmstrip extraction failed, continue without it
       }
     }
-  }, [resetProcessor, setFileWithPreview, performCrop, extractFrames, targetWidth, targetHeight, filmstripFrames, appMode, updateFramePreview]);
+  }, [resetProcessor, setFileWithPreview, performCrop, extractFrames, filmstripFrames, updateFramePreview, getTargetSizeForMode]);
 
   const handlePresetChange = useCallback(async (newIndex: number) => {
     setPresetIndex(newIndex);
@@ -166,8 +192,9 @@ function App() {
     setCustomGridEnabled(false);
     cropOffsetRef.current = null;
     const p = PRESETS[newIndex];
-    const tw = p.cols * p.tileWidth + (p.cols - 1) * p.gap;
-    const th = p.rows * p.tileHeight + (p.rows - 1) * p.gap;
+    const gap = appMode === 'splitter' ? p.gap : 0;
+    const tw = p.cols * p.tileWidth + (p.cols - 1) * gap;
+    const th = p.rows * p.tileHeight + (p.rows - 1) * gap;
 
     clearResults();
 
@@ -176,7 +203,7 @@ function App() {
       const tr = trimRangeRef.current;
       await performCrop(file, tw, th, undefined, undefined, tr?.start, tr?.end);
     }
-  }, [file, setPresetIndex, setCutoffMode, setCustomGridEnabled, clearResults, clearCroppedPreview, performCrop]);
+  }, [file, appMode, setPresetIndex, setCutoffMode, setCustomGridEnabled, clearResults, clearCroppedPreview, performCrop]);
 
   const handleCutoffToggle = useCallback(async (checked: boolean) => {
     setCutoffMode(checked);
@@ -375,27 +402,8 @@ function App() {
         <main className='hw-lcd-screen'>
           <HeroSection />
 
-          <div className='hw-mode-toggle-track'>
-            <div
-              className={`hw-mode-toggle-thumb${appMode === 'screensaver' ? ' hw-mode-toggle-right' : ''}`}
-            />
-            <button
-              className={`hw-mode-toggle-label${appMode === 'splitter' ? ' active' : ''}`}
-              onClick={() => handleAppModeChange('splitter')}
-            >
-              Gif Splitter
-            </button>
-            <button
-              className={`hw-mode-toggle-label${appMode === 'screensaver' ? ' active' : ''}`}
-              onClick={() => handleAppModeChange('screensaver')}
-            >
-              Image Wallpaper
-            </button>
-          </div>
-
           <GifSourceTabs hasFile={!!file} onGifSelected={handleFileUpload}>
             <FileDropZone
-              appMode={appMode}
               file={file}
               preview={preview}
               cropSyncKey={cropSyncKey}
@@ -409,6 +417,35 @@ function App() {
               onClear={handleClearFile}
             />
           </GifSourceTabs>
+
+          {file?.type === 'image/gif' && (
+            <div className='hw-output-mode'>
+              <span className='hw-output-mode-title'>GIF output</span>
+              <div className='hw-mode-toggle-track'>
+                <div
+                  className={`hw-mode-toggle-thumb${appMode === 'screensaver' ? ' hw-mode-toggle-right' : ''}`}
+                />
+                <button
+                  type='button'
+                  className={`hw-mode-toggle-label${appMode === 'splitter' ? ' active' : ''}`}
+                  onClick={() => handleOutputModeChange('splitter')}
+                  aria-pressed={appMode === 'splitter'}
+                  disabled={isCropping || isSplitting}
+                >
+                  Split into keys
+                </button>
+                <button
+                  type='button'
+                  className={`hw-mode-toggle-label${appMode === 'screensaver' ? ' active' : ''}`}
+                  onClick={() => handleOutputModeChange('screensaver')}
+                  aria-pressed={appMode === 'screensaver'}
+                  disabled={isCropping || isSplitting}
+                >
+                  Create wallpaper
+                </button>
+              </div>
+            </div>
+          )}
 
           {file && (
             <section className='hw-screen-panel hw-config-panel'>
